@@ -1,3 +1,10 @@
+fix module "org.kde.plasma.private.pager" is not installed error when update to plasma 6.6 by openai codex
+
+I just want to achieve the following effect.
+
+![image](https://github.com/user-attachments/assets/37e92b90-11c7-45ad-99ac-55f4a6a28046)
+
+
 This project has been closed due to its design limitations, and further development is now moved to [kara](https://github.com/dhruv8sh/kara).
 
 # Desktop Indicator for Plasma 6
