@@ -22,6 +22,7 @@ Rectangle {
     // 0 : Text
     // 1 : Numbered
     property int indicatorType: plasmoid.configuration.indicatorType
+    property int activeTextYOffset: plasmoid.configuration.activeTextYOffset
 
     color: "transparent"
     Rectangle{
@@ -47,12 +48,14 @@ Rectangle {
     //     filterByVirtualDesktop: true
     //     filterByActivity: true
     // }
-    Label {
+    Text {
         id: label
         anchors.centerIn: parent
+        anchors.verticalCenterOffset: (isActive && indicatorType === 0) ? activeTextYOffset : 0
         font.bold: isActive && boldOnActive
         font.italic: isActive && italicOnActive
         font.pixelSize: Plasmoid.configuration.dotSizeCustom + (isAddButton ? 2 : 0)
+        color: Kirigami.Theme.textColor
         text: {
             if( isAddButton ) return '+'
             else return indicatorType == 1 ? pos+1 : plasmoid.configuration.inactiveText
@@ -76,6 +79,7 @@ Rectangle {
         anchors.fill: parent
         hoverEnabled: true
         acceptedButtons: Qt.LeftButton
+        onWheel: wheel => wheel.accepted = false
         onClicked: isAddButton ? pagerModel.addDesktop() : pagerModel.changePage(pos)
         onContainsMouseChanged: container.opacity = containsMouse || isAddButton ? 0.5 : 1
     }

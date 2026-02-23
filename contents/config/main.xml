@@ -66,6 +66,10 @@
       <label>The unicode character used for the inactive desktop indicator</label>
       <default>○</default>
     </entry>
+    <entry name="activeTextYOffset" type="Int">
+      <label>Vertical offset (in px) applied to active indicator text</label>
+      <default>-1</default>
+    </entry>
     <entry name="radiusFactor" type="Double">
       <label>Radius</label>
       <default>0.6</default>

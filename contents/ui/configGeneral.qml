@@ -24,6 +24,7 @@ QtLayouts.ColumnLayout {
     property alias cfg_showAddDesktop     : showAddDesktop.checked
     property alias cfg_radiusFactor      : radiusSlider.value
     property alias cfg_hideSingleWorkspace: hideSingleWorkspace.checked
+    // property alias cfg_activeTextYOffset  : activeTextYOffset.value
 
     Kirigami.FormLayout {
 
@@ -147,6 +148,19 @@ QtLayouts.ColumnLayout {
                 to: 30
             }
         }
+        // QtLayouts.RowLayout {
+        //     Kirigami.FormData.label: i18n("Active Dot Y Offset:")
+        //     visible: indicatorType.currentIndex == 0
+        //
+        //     QC2.SpinBox {
+        //         id: activeTextYOffset
+        //         textFromValue: function(value) {
+        //             return i18n("%1 px", value)
+        //         }
+        //         from: -10
+        //         to: 10
+        //     }
+        // }
 
         QtLayouts.GridLayout {
             id: dotCharGrid

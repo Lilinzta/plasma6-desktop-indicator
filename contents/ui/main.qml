@@ -3,7 +3,7 @@ import QtQuick.Layouts
 import org.kde.plasma.plasmoid
 import org.kde.plasma.plasma5support as Plasma5Support
 import org.kde.plasma.core as PlasmaCore
-import org.kde.plasma.private.pager
+import org.kde.taskmanager as TaskManager
 import org.kde.kcmutils as KCM
 import org.kde.config as KConfig
 
@@ -18,6 +18,7 @@ PlasmoidItem {
     property bool wrapOn: plasmoid.configuration.desktopWrapOn
     property int addDesktop: plasmoid.configuration.showAddDesktop && isSingleRow ? 1 : 0
     property bool hideSingleWorkspace: plasmoid.configuration.hideSingleWorkspace
+    property bool isActivityPager: false
 
     GridLayout {
         id: grid
@@ -55,13 +56,35 @@ PlasmoidItem {
     Layout.minimumWidth: grid.implicitWidth + plasmoid.configuration.spacingHorizontal
     Layout.minimumHeight: grid.implicitHeight + plasmoid.configuration.spacingVertical
 
-    PagerModel {
+    TaskManager.VirtualDesktopInfo {
+        id: desktopInfo
+    }
+
+    QtObject {
         id: pagerModel
-        enabled: true
-        showDesktop: plasmoid.configuration.currentDesktopSelected == 1
-        screenGeometry: plasmoid.containment.screenGeometry
-        pagerType: PagerModel.VirtualDesktops
-        onCurrentPageChanged: updateRepresentation()
+        readonly property int count: desktopInfo.numberOfDesktops
+        readonly property int layoutRows: Math.max(desktopInfo.desktopLayoutRows, 1)
+        readonly property int currentPage: root.currentDesktopIndex()
+
+        function changePage(index) {
+            root.changePage(index)
+        }
+
+        function addDesktop() {
+            root.addDesktopByDbus()
+        }
+
+        function removeDesktop() {
+            root.removeCurrentDesktopByDbus()
+        }
+    }
+
+    Connections {
+        target: desktopInfo
+        function onCurrentDesktopChanged() { root.updateRepresentation() }
+        function onNumberOfDesktopsChanged() { root.updateRepresentation() }
+        function onDesktopLayoutRowsChanged() { root.updateRepresentation() }
+        function onDesktopIdsChanged() { root.updateRepresentation() }
     }
     MouseArea {
         anchors.fill: parent
@@ -79,6 +102,9 @@ PlasmoidItem {
                 increment--;
             }
             while (increment !== 0) {
+                if (pagerModel.count <= 0) {
+                    break;
+                }
                 if (increment < 0) {
                     const nextPage = wrapOn? (current + 1) % pagerModel.count :
                         Math.min(current + 1, pagerModel.count - 1);
@@ -94,8 +120,53 @@ PlasmoidItem {
             }
         }
     }
+    function shellQuote(value) {
+        const stringValue = String(value);
+        return "'" + stringValue.replace(/'/g, "'\\''") + "'";
+    }
+
+    function runQdbus(commandArgs) {
+        const script = "tool=\"$(command -v qdbus6 || command -v qdbus || command -v qdbus-qt6)\"; "
+            + "[ -n \"$tool\" ] && \"$tool\" " + commandArgs;
+        executable.exec("sh -c " + shellQuote(script));
+    }
+
     function perform(input) {
-        executable.exec('qdbus org.kde.kglobalaccel /component/kwin invokeShortcut \"'+input+'\"')
+        runQdbus("org.kde.kglobalaccel /component/kwin invokeShortcut " + shellQuote(input));
+    }
+
+    function currentDesktopIndex() {
+        const ids = desktopInfo.desktopIds || [];
+        const index = ids.indexOf(desktopInfo.currentDesktop);
+        return index >= 0 ? index : 0;
+    }
+
+    function changePage(index) {
+        if (index < 0 || index >= pagerModel.count) {
+            return;
+        }
+        // KWin DBus uses 1-based desktop index.
+        runQdbus("org.kde.KWin /KWin org.kde.KWin.setCurrentDesktop " + (index + 1));
+    }
+
+    function addDesktopByDbus() {
+        const next = pagerModel.count + 1;
+        const label = i18n("Desktop %1", next);
+        runQdbus("org.kde.KWin /VirtualDesktopManager org.kde.KWin.VirtualDesktopManager.createDesktop "
+            + pagerModel.count + " " + shellQuote(label));
+    }
+
+    function removeCurrentDesktopByDbus() {
+        const ids = desktopInfo.desktopIds || [];
+        if (ids.length <= 1) {
+            return;
+        }
+        const index = currentDesktopIndex();
+        if (index < 0 || index >= ids.length) {
+            return;
+        }
+        runQdbus("org.kde.KWin /VirtualDesktopManager org.kde.KWin.VirtualDesktopManager.removeDesktop "
+            + shellQuote(ids[index]));
     }
     Plasma5Support.DataSource {
         id: "executable"
